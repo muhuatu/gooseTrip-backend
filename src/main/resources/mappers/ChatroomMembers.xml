@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.goosetrip.dao.ChatroomMembersDao">
+
+	<select id="findChatroomsByUserMail">
+		select journey.journey_name, journey.invitation from journey
+		join chatroom_members on journey.invitation = chatroom_members.invitation
+		where chatroom_members.user_mail = #{userMail};
+	</select>
+	
+	<!-- 新建行程 -->
+	<insert id="createJourney">
+		INSERT INTO chatroom_members
+		(
+		`journey_id`,
+		`invitation`,
+		`user_mail`
+		)
+		VALUES
+		(
+		#{journeyId},
+		#{invitation},
+		#{userMail}
+		);
+	</insert>
+	
+	<select id="findJourneyIdByUserMail">
+		select journey_id from chatroom_members
+		where user_mail = #{userMail};
+	</select>
+</mapper>

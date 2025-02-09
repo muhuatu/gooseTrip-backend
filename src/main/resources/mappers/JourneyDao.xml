@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.goosetrip.dao.JourneyDao">
+	<select id="searchJourneyByInvitationList"
+		resultType="com.example.goosetrip.dto.Journey">
+		select
+		journey_id,journey_name,start_date,end_date,transportation,invitation,user_mail
+		from journey where invitation IN
+		<foreach item="invitation" collection="invitationList" open="("
+			separator="," close=")">
+			#{invitation}
+		</foreach>
+	</select>
+
+	<!-- 新建行程 -->
+	<insert id="createJourney" useGeneratedKeys="true"
+		keyProperty="journeyId" keyColumn="journey_id">
+		INSERT INTO journey
+		(
+			invitation,
+			journey_name,
+			start_date,
+			end_date,
+			transportation,
+			user_mail
+		)
+		VALUES
+		(
+		#{invitation},
+		#{journeyName},
+		#{startDate},
+		#{endDate},
+		#{transportation},
+		#{userMail}
+		);
+	</insert>
+
+	<!-- 更新行程 -->
+	<update id="updateJourney">
+			UPDATE journey
+			SET 
+					journey_name = #{journeyName},
+					start_date = #{startDate},
+					end_date = #{endDate},
+					transportation = #{transportation},
+					user_mail = #{userMail}
+			WHERE journey_id = #{journeyId};
+	</update>
+
+	<!-- 刪除行程 -->
+	<delete id="deleteJourney">
+		DELETE FROM journey
+		WHERE journey_id = #{journeyId};
+	</delete>
+
+	<!-- 搜尋邀請碼 -->
+	<select id="searchInvitationByUserMail">
+		select invitation from chatroom_members where
+		user_mail = #{arg0}
+	</select>
+	
+	<!-- 搜行程Id -->
+	<select id="searchJourneyId"
+	parameterType="String">
+		select journey_id from journey where invitation=#{arg0}
+	</select>
+
+    <!-- 加入行程 -->
+	<insert id="joinJourneyId">
+	insert into chatroom_members(journey_id,invitation,user_mail)
+	values(#{arg0},#{arg1},#{arg2})
+	</insert>
+
+	<!-- 用行程Id搜尋行程 -->
+	<select id="findJourneyById"  resultType="com.example.goosetrip.dto.Journey">
+		select journey_id, journey_name, start_date, end_date, transportation from journey 
+		where journey_id = #{journeyId}
+	</select>
+
+</mapper>

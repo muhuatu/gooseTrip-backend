@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        <mapper namespace="com.example.goosetrip.dao.MapPlaceDao">
+        <!-- SQL語法 -->
+        <insert id="savePlace1">
+        INSERT INTO map_place(place_id,place_name,address,longitude,latitude,place_type)
+        VALUES(#{inputId},#{inputName},#{inputAddress},#{inputLongitude},#{inputLatitude},#{inputType});
+        </insert>
+        
+        <insert id="savePlace" >
+    	INSERT INTO map_place(place_id, place_name, address, longitude, latitude, place_type)
+    	VALUES(#{placeId}, #{placeName}, #{address}, #{longitude}, #{latitude}, #{placeType})
+		</insert>
+		<insert id="saveAllPlace">
+		INSERT INTO map_place(place_id, place_name, address, longitude, latitude, place_type)
+    	VALUES
+    	<foreach collection="inputReqList" item="item" separator=",">
+    	(#{item.placeId},#{item.placeName},#{item.address},#{item.longitude},#{item.latitude},#{item.placeType})
+    	</foreach>
+    	</insert>
+    	<select id="findAllById">
+    	SELECT place_id,place_name,address,longitude,latitude,place_type FROM map_place WHERE place_id = #{arg0}
+    	</select>
+    	<update id="updateAllPlace">
+    	<foreach collection="inputReqList" item="item" separator=",">
+            UPDATE map_place 
+            SET 
+                place_name = #{item.placeName},
+                address = #{item.address},
+                longitude = #{item.longitude},
+                latitude = #{item.latitude},
+                place_type = #{item.placeType}
+            WHERE place_id = #{item.placeId}
+        </foreach>
+    	</update>
+    	<delete id="deleteAllPlace">
+    	<foreach collection="inputReqList" item="item" separator=",">
+    	DELETE FROM map_place WHERE place_id = #{item.placeId}
+    	</foreach>
+    	</delete>
+    	 <update id="updatePlace">
+        UPDATE map_place
+        SET 
+            place_name = #{placeName},
+            address = #{address},
+            longitude = #{longitude},
+            latitude = #{latitude},
+            place_type = #{placeType}
+        WHERE place_id = #{placeId}
+    </update>
+        </mapper>

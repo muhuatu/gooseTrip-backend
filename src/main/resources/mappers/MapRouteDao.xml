@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        <mapper namespace="com.example.goosetrip.dao.MapRouteDao">
+        <!-- SQL語法 -->
+        <insert id="saveRoute">
+        INSERT INTO map_route(start_place_id,end_place_id,transportation,start_time,route_time,distance,route_line,journey_id,day)
+        Values(#{startPlaceId},#{endPlaceId},#{transportation},#{startTime},#{routeTime},#{distance},#{routeLine},#{journeyId},#{day})
+        </insert>
+        <update id="updateRoute">
+        UPDATE map_route SET start_place_id = #{startPlaceId},end_place_id=#{endPlaceId},transportation=#{transportation},
+        route_time=#{routeTime},distance=#{distance},route_line=#{routeLine} WHERE start_time=#{startTime} AND day=#{day} AND journey_id=#{journeyId}
+        </update>
+        <!-- 查詢語句: 根據 startTime, journeyId 和 day 查找路徑 -->
+    <select id="findRouteByPK">
+        SELECT start_place_id,end_place_id,transportation,start_time,route_time,distance,route_line,journey_id,day FROM map_route
+        WHERE  journey_id = #{journeyId} AND day = #{day} AND start_time = #{startTime}
+    </select>
+    <delete id="deleteAllRoute">
+    DELETE FROM map_route WHERE  journey_id = #{journeyId} AND day = #{day} 
+    </delete>
+    <delete id="deleteRoute">
+    DELETE FROM map_route WHERE  journey_id = #{journeyId} AND day = #{day} AND start_time = #{startTime}
+    </delete>
+    <!-- 一條一條插入SQL -->
+    <insert id="saveOrUpdateAllRoute">
+    INSERT INTO map_route(start_place_id, end_place_id, transportation, start_time, route_time, distance, route_line, journey_id, day)
+    VALUES
+    <foreach collection="inputReqList" item="item" separator=",">
+        (#{item.startPlaceId}, #{item.endPlaceId}, #{item.transportation}, #{item.startTime}, #{item.routeTime}, #{item.distance}, #{item.routeLine}, #{item.journeyId}, #{item.day})
+    </foreach>
+	</insert>
+	
+        </mapper>

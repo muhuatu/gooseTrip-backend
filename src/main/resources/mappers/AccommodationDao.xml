@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.goosetrip.dao.AccommodationDao">
+
+	<insert id="saveRoomData"> 
+		INSERT INTO accommodation (journey_id, checkout_date, checkin_date, hotel_name, hotel_web, 
+		room_type,bed_type,price,number,url,finished,user_mail) 
+		VALUES <foreach collection="list" item="item" separator=",">
+			(#{item.journeyId}, #{item.checkoutDate}, #{item.checkinDate},
+			#{item.hotelName}, #{item.hotelWeb}, #{item.roomType}, #{item.bedType},
+			#{item.price},#{item.number},#{item.url},#{item.finished},#{item.userMail})
+			</foreach>
+	</insert>
+
+	<select id="getRoomData">
+		select accommodation_id, journey_id, checkout_date, checkin_date,
+		hotel_name, hotel_web, room_type, bed_type, price, number, url, finished from accommodation
+		where journey_id = #{journeyId}
+	</select>
+
+	<delete id="deleteRoomData"> delete from accommodation where journey_id =
+		#{journeyId} and accommodation_id in <foreach
+			collection="accommodationId" item="id" open="(" close=")"
+			separator=",">
+			#{id}
+		</foreach> and finished is false 
+	</delete>
+
+	<update id="editAccommodation">
+		UPDATE accommodation
+		SET user_mail = #{userMail}
+		WHERE journey_id = #{journeyId} and user_mail IS NULL
+	</update>
+	
+	<update id="updateRoomData">
+ 			UPDATE goosetrip.accommodation
+	        SET
+	            finished = #{finished}
+	        WHERE accommodation_id = #{accommodationId} and user_mail is not null
+	</update>
+	
+	<update id="stopEditAccommodation">
+		UPDATE accommodation
+		SET user_mail = NULL
+		WHERE journey_id = #{journeyId} and user_mail IS NOT NULL
+	</update>
+	
+</mapper>

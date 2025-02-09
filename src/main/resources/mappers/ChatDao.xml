@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.goosetrip.dao.ChatDao">
+
+	<select id="checkChatroom">
+		select count(*) from chatroom_members
+		where invitation = #{invitation}
+	</select>
+	<select id="getChatRecord">
+		SELECT 
+            journey.invitation, 
+            users.user_name, 
+            users.user_mail, 
+            users.user_image, 
+            chat.chat_id, 
+            chat.chat_type, 
+            chat.chat_detail, 
+            chat.chat_image, 
+            chat.chat_time, 
+            chat.reply
+        FROM chat
+        LEFT JOIN users
+            ON users.user_mail = chat.user_mail
+        LEFT JOIN journey
+            ON journey.invitation = chat.invitation
+	</select>
+	<select id="getJourneyId">
+		select journey_id from journey where invitation = #{invitation}
+	</select>
+	<insert id="saveMessage">
+		insert into chat (journey_id, invitation, chat_type, chat_detail, chat_image, chat_time, user_mail, reply)
+		values (journeyId, invitation, chatType, chatDetail, chatImage, chatTime, userMail, reply);
+	</insert>
+</mapper>

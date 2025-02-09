@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.goosetrip.dao.SpotDao">
+	<!-- 搜尋該行程的景點 -->
+	<select id="getAllSpotByJourney2"
+		resultType="com.example.goosetrip.dto.Spot"> select
+		spot_id,journey_id,day,date,arrival_time,departure_time,
+		spot_name,place_id,note from spot where
+		journey_id = #{arg0}
+	</select>
+
+	<!-- 目前因為從地圖新增景點時尚未將 place_id 存到 map_place表 ，所以需要用 left join 撈所有景點資料 -->
+	<select id="getAllSpotByJourney"
+		resultType="com.example.goosetrip.dto.Spot">
+		SELECT
+		s.spot_id, s.journey_id, s.day, s.date,
+		s.arrival_time, s.departure_time,
+		s.spot_name, s.place_id, s.note,
+		s.spot_image,
+		mp.address,mp.latitude,mp.longitude,mp.place_type
+		FROM
+		spot s
+		LEFT JOIN
+		map_place mp ON s.place_id = mp.place_id
+		WHERE
+		s.journey_id = #{arg0}
+	</select>
+
+	<!-- 批量新增景點 -->
+	<insert id="createSpot">
+		INSERT INTO spot (
+		journey_id, spot_id, day, date, spot_name,
+		place_id,
+		note, arrival_time, departure_time, spot_image
+		) VALUES
+		<foreach collection="list" item="spot" separator=",">
+			(
+			#{spot.journeyId},
+			#{spot.spotId},
+			#{spot.day},
+			#{spot.date},
+			#{spot.spotName},
+			#{spot.placeId},
+			#{spot.note},
+			#{spot.arrivalTime},
+			#{spot.departureTime},
+			#{spot.spotImage}
+			)
+		</foreach>
+	</insert>
+
+	<!-- 根據新的行程開始日期更新所有景點日期 -->
+	<update id="updateSpotDates">
+		UPDATE spot
+		SET date = DATE_ADD(#{newStartDate}, INTERVAL (day - 1) DAY)
+		WHERE journey_id = #{journeyId};
+	</update>
+
+
+	<delete id="deleteSpot">
+		DELETE FROM spot
+		WHERE journey_id = #{journeyId} AND
+		day = #{day}
+	</delete>
+
+	<!-- 搜尋該行程的路徑 -->
+	<select id="getAllRouteByJourney"
+		resultType="com.example.goosetrip.dto.MapRoute">
+		select
+		start_place_id,end_place_id,transportation,start_time,route_time,distance,
+		route_line,journey_id,day from map_route where
+		journey_id = #{arg0}
+	</select>
+
+	<!-- 獲取該景點的抵達與離開時間 -->
+	<select id="checkSpotExist"
+		resultType="com.example.goosetrip.dto.Spot">
+		select * from spot
+		where journey_id = #{journeyId} and
+		spot_id = #{spotId} and day = #{day}
+	</select>
+
+	<!-- 搜尋特定天數的景點 -->
+	<select id="getAllSpotByIdAndDay"
+		resultType="com.example.goosetrip.vo.SpotDetail"> select
+		spot_id, arrival_time, departure_time, spot_name,
+		place_id, note
+		from spot where
+		journey_id = #{arg0} and day = #{arg1}
+	</select>
+
+	<!-- 搜尋該行程的景點 + 貼文表的景點圖片 -->
+	<select id="getAllSpotByJourneyWithSpotImage"
+		resultType="com.example.goosetrip.vo.PostSpot">
+		select s.spot_id, s.journey_id, s.day, s.date,
+		s.arrival_time, s.departure_time,
+		s.spot_name, s.place_id,
+		p.spot_image, p.spot_note
+		from spot s
+		join post p on p.spot_id =
+		s.spot_id and p.day = s.day and p.journey_id = s.journey_id
+		where
+		p.journey_id = #{journeyId}
+	</select>
+
+</mapper>

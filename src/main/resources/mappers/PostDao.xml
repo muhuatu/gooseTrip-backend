@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.goosetrip.dao.PostDao">
+
+    <!-- 新增貼文 -->
+    <insert id="insertPost">
+        insert into post (post_id, journey_id, user_mail, post_content, post_time, published, day, spot_id, spot_note,
+        spot_image, place_id)
+        values
+        <foreach collection="details" item="d" separator=",">
+            (#{postId}, #{journeyId}, #{userMail}, #{postContent}, #{postTime}, 1,
+            #{d.day}, #{d.spotId}, #{d.spotNote}, #{d.spotImgData}, #{d.placeId})
+        </foreach>
+    </insert>
+
+
+    <!-- 使用者刪除貼文 -->
+    <delete id="deletePost">
+        delete from post where user_mail = #{userMail}
+        <if test="postIdList != null and !postIdList.isEmpty()">
+            and post_id in
+            <foreach collection="postIdList" item="postId" open="(" separator="," close=")">
+                #{postId}
+            </foreach>
+        </if>
+    </delete>
+
+
+    <!-- 用使用者名稱或行程名稱查詢相關貼文 -->
+    <select id="searchPostByKeyword" resultType="com.example.goosetrip.vo.PostList">
+        select
+        p.journey_id as journeyId,
+        j.journey_name as journeyName,
+        <!-- 取第一張景點圖片就好 -->
+        MIN(p.spot_image) as spotImgData,
+        u.user_name as userName,
+        p.user_mail as userMail,
+        u.user_image as userImage,
+        p.post_id as postId,
+        p.post_time as postTime, 
+        p.published,
+        count(distinct CASE
+            WHEN i.thumb = true
+            AND i.comment_sn = 0
+            THEN i.user_mail
+            END) as thumbUp,
+        count(distinct CASE
+            WHEN i.thumb = false
+            AND i.comment_sn = 0
+            THEN i.user_mail
+            END) as thumbDown
+        from post as p
+        left join interact i on p.post_id = i.post_id
+        join users u on p.user_mail = u.user_mail
+        join journey j on p.journey_id = j.journey_id
+        where 1=1
+        <if test="keyword != null and keyword != ''">
+            and (
+            u.user_name like concat('%', #{keyword}, '%')
+            or
+            j.journey_name like concat('%', #{keyword}, '%')
+            )
+        </if>
+        GROUP BY
+        p.journey_id,
+        j.journey_name,
+        u.user_name,
+        p.user_mail,
+        p.post_id,
+        p.post_time, 
+        p.published
+    </select>
+
+
+    <!--    根據信箱查詢該使用者收藏的貼文ID列表 -->
+    <select id="getFavoritePosts" resultType="java.lang.String">
+        select favorite_post from users where user_mail = #{userMail}
+    </select>
+
+
+    <!-- 用使用者的信箱查詢貼文 -->
+    <select id="getPostByUserMail">
+        select users.user_name, users.user_mail, users.user_image, journey.journey_id, journey.journey_name,
+        MIN(post.spot_image) as spotImgData, post.post_id, post.post_time, post.published,
+        COUNT(distinct CASE WHEN interact.thumb = true AND interact.comment_sn = 0 then 1 end) as thumbUp,
+        COUNT(distinct CASE WHEN interact.thumb = false AND interact.comment_sn = 0 then 1 end) as thumbDown
+        from post
+        join users on post.user_mail = users.user_mail
+        join journey on post.journey_id = journey.journey_id
+        left join interact on post.post_id = interact.post_id
+        where post.user_mail = #{userMail}
+        GROUP BY
+        users.user_name,
+        users.user_mail,
+        users.user_image,
+        journey.journey_id,
+        journey.journey_name,
+        post.post_id,
+        post.post_time, 
+        post.published;
+    </select>
+
+    <!--  檢查該信箱與行程ID是否已存在於POST資料表(有則大於0)  -->
+    <select id="findPostByUserMailAndJourneyId" resultType="java.lang.Integer">
+        select count(*) from post where user_mail = #{userMail} and journey_id = #{journeyId}
+        and spot_id = #{spotId} and day = #{day}
+    </select>
+
+    <!--  取出 post 表中的最大 post_id -->
+    <select id="getMaxPostId" resultType="java.lang.Integer">
+        select coalesce(MAX(post_id),0) as maxPostId from post
+    </select>
+
+    <!--  用貼文ID找該貼文 -->
+    <select id="findAllByPostId" resultType="com.example.goosetrip.vo.PostVo">
+        select
+        p.journey_id as journeyId,
+        j.journey_name as journeyName,
+        MIN(p.spot_image) as spotImgData,
+        u.user_name as userName,
+        p.user_mail as userMail,
+        u.user_image as userImage,
+        p.post_id as postId,
+        p.post_time as postTime,
+        p.post_content as postContent, 
+        p.published,
+        <!--   只找貼文的讚   -->
+        count(CASE
+        WHEN i.thumb = true
+        AND i.comment_sn = 0
+        THEN 1
+        END) as thumbUp,
+        p.day as day,
+        p.spot_id as spotId,
+        p.spot_image as spotImage,
+        p.spot_note as spotNote,
+        p.place_id as placeId,
+        s.spot_name as spotName
+        from post as p
+        left join interact i on p.post_id = i.post_id
+        join users u on p.user_mail = u.user_mail
+        join journey j on p.journey_id = j.journey_id
+        join spot s on p.journey_id = s.journey_id and p.day = s.day and p.spot_id = s.spot_id
+        where p.post_id = #{postId}
+        GROUP BY
+        p.journey_id,
+        j.journey_name,
+        u.user_name,
+        p.user_mail,
+        u.user_image,
+        p.post_id,
+        p.post_time,
+        p.post_content,
+        p.day,
+        p.spot_id,
+        p.spot_image,
+        p.spot_note,
+        p.place_id,
+        s.spot_name
+    </select>
+
+    <!--  比對行程ID與貼文ID是否對應  -->
+    <select id="checkJourneyIdAndPostId" resultType="java.lang.Integer">
+        select count(*) from post where post_id = #{postId} and journey_id = #{journeyId}
+    </select>
+
+    <!--  檢查該信箱與行程ID是否已存在於POST資料表  -->
+    <select id="findPostIsPublished" resultType="java.lang.Integer">
+        select count(*) from post where user_mail = #{userMail} and journey_id = #{journeyId}
+    </select>
+
+    <!--  更新使用者的收藏貼文  -->
+    <update id="updateFavoritePostByUserMail">
+        update users set favorite_post = #{favoritePosts} where user_mail = #{userMail}
+    </update>
+
+
+    <update id="updatePost">
+        UPDATE post
+        SET
+        post_id = #{postId},
+        journey_id = #{journeyId},
+        user_mail = #{userMail},
+        post_content = #{postContent},
+        post_time = #{postTime},
+        day = #{details.day},
+        spot_id = #{details.spotId},
+        spot_image = #{details.spotImgData},
+        spot_note = #{details.spotNote},
+        place_id = #{details.placeId}, 
+        published = true
+        WHERE
+        journey_id = #{journeyId} AND
+        user_mail = #{userMail} AND
+        day = #{details.day} AND
+        spot_id = #{details.spotId};
+    </update>
+</mapper>

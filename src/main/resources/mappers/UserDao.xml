@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.goosetrip.dao.UserDao">
+
+    <resultMap id="UserResultMap"
+               type="com.example.goosetrip.dto.Users">
+        <result column="user_image" property="userImage"
+                typeHandler="org.apache.ibatis.type.BlobTypeHandler"/>
+    </resultMap>
+
+    <!-- 將行程表的使用者信箱設為 null -->
+    <update id="updateUserMailToNull">
+        update journey set user_mail = null where journey_id = #{journeyId} and
+        user_mail = #{mail}
+    </update>
+
+    <!-- 更新使用者資訊，有變更才更新 -->
+    <update id="updateUser">
+        update users set
+        user_name = case when #{userName} != user_name then #{userName} else user_name
+        end,
+        user_phone = case when #{userPhone} != user_phone then #{userPhone} else
+        user_phone end,
+        user_password = case when #{userPassword} != user_password then #{userPassword}
+        else user_password end,
+        user_image = #{userImage}
+        where user_mail = #{userMail}
+    </update>
+
+    <!-- 將使用者信箱從聊天室刪除 -->
+    <delete id="deleteUserFromChatroom">
+        delete from chatroom_members where user_mail = #{mail}
+        <if test="journeyIdList != null and journeyIdList.size() > 0">
+            and journey_id in
+            <foreach item="idItem" collection="journeyIdList" open="("
+                     separator="," close=")">
+                #{idItem}
+            </foreach>
+        </if>
+    </delete>
+
+    <!-- 將行程及聊天室刪除(journey/spot/chatroom_members/chat/accommodation -->
+    <delete id="deleteUserFromJourneyAndChatroom">
+        delete j, s, cm, c, ac from journey as j
+        join spot as s on j.journey_id = s.journey_id
+        join chatroom_members as cm on j.journey_id = cm.journey_id
+        join chat as c on j.journey_id = c.journey_id
+        join accommodation as ac on j.journey_id = ac.journey_id
+        where cm.user_mail = #{mail} and j.journey_id = #{journeyId}
+    </delete>
+
+    <select id="findAllUsers"
+            resultType="com.example.goosetrip.dto.Users">
+        select user_mail, user_name, user_password, user_phone, user_image,
+        user_favorite from users
+    </select>
+
+    <select id="getInfoById"
+            resultType="com.example.goosetrip.dto.Users">
+        select user_mail, user_name, user_password, user_phone, user_image,
+        user_favorite, user_edit, favorite_post from users
+        where user_mail = #{mail}
+    </select>
+
+    <select id="findUserPasswordByUserMail"
+            resultType="java.lang.String">
+        select user_password from users where user_mail = #{mail}
+    </select>
+
+    <!-- 查找此行程有幾個成員 -->
+    <select id="findUsersByJourneyId" resultType="java.lang.Integer">
+        select count(*) from chatroom_members where journey_id = #{journeyId}
+    </select>
+
+    <!-- 返回行程ID的LIST -->
+    <select id="findJourneyByUserMail"
+            resultType="java.lang.Integer">
+        select journey_id from chatroom_members where user_mail = #{mail};
+    </select>
+
+    <!-- 更新我的最愛 -->
+    <update id="updateFavorite">
+        update users set user_favorite = #{newFavorite} where user_mail = #{mail};
+    </update>
+
+    <!-- 把地點加進我的行程前的查詢 -->
+    <select id="findJourneyInfoByUserMail"
+            resultType="com.example.goosetrip.dto.Journey">
+        select j.journey_id,j.journey_name,j.start_date,j.end_date from journey as j
+        where exists (select * from chatroom_members as cm where
+        j.journey_id=cm.journey_id and cm.user_mail = #{mail})
+    </select>
+
+    <!-- 查詢行程的哪幾天有人正在編輯 -->
+    <select id="findUserEditByJourneyId"
+    resultType="com.example.goosetrip.dto.Users">
+        select user_edit, edit_time, user_mail from users where
+        <foreach item="idItem" collection="list" open="("
+                 separator="or" close=")">
+            user_edit like concat(#{idItem.journeyId}, ',%')
+        </foreach>
+    </select>
+    
+    <update id="clearEdit">
+        update users set user_edit = null, edit_time = null where user_mail = #{mail};
+    </update>
+
+    <!-- 查詢行程的哪幾天有人正在編輯 -->
+    <select id="findCollaboratorByJourneyId"
+            resultType="com.example.goosetrip.vo.Collaborator">
+        select u.user_mail, u.user_name, u.user_image, cm.invitation from users as u
+        join chatroom_members as cm on cm.user_mail = u.user_mail
+        where cm.journey_id = #{journeyId}
+        AND EXISTS (
+        SELECT 1
+        FROM chatroom_members AS cm_sub
+        WHERE cm_sub.journey_id = #{journeyId} AND cm_sub.user_mail = #{mail}
+        );
+    </select>
+    <!-- 修改user_edit欄位 -->
+    <update id="updateUserEdit">
+        UPDATE users
+        SET user_edit = CASE
+        WHEN user_edit IS NULL THEN #{userEdit}
+        ELSE NULL
+        END, edit_time = #{editTime}
+        where user_mail=#{mail};
+    </update>
+
+    <!-- 查詢有沒有人已經在編輯同一行程同一天 -->
+    <select id="searchByUserEdit"
+            resultType="com.example.goosetrip.dto.Users">
+        select user_mail, edit_time from users
+        where user_edit=#{userEdit};
+    </select>
+
+    <!-- 新增user_edit欄位 -->
+    <update id="setUserEdit">
+        UPDATE users
+        SET user_edit = #{userEdit}
+        where user_mail = #{mail};
+    </update>
+    
+    <!-- 查詢使用者是否正在編輯中 -->
+    <select id="searchUserEditByMail"
+            resultType="java.lang.String">
+        select user_edit from users where user_mail = #{mail};
+    </select>
+    
+    <!-- 設定新密碼 -->
+    <update id="setPwd">
+        update users set user_password = #{pwd} where user_mail = #{mail};
+    </update>
+
+</mapper>
